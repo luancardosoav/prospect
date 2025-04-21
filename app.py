@@ -114,17 +114,49 @@ elif aba == "📊 Funil de Vendas":
     else:
         fases = ["Novo", "Contatado", "Aguardando resposta", "Fechado"]
         fase_to_leads = {fase: df[df["status"] == fase]["nome"].tolist() for fase in fases}
-        st.write("💡 Arraste os cards entre colunas para atualizar o status.")
+
+        # Estilo com divisórias
+        st.markdown("""
+            <style>
+            .col-container {
+                display: flex;
+                justify-content: space-between;
+            }
+            .kanban-col {
+                flex: 1;
+                margin: 0 4px;
+                padding: 10px;
+                background-color: #1e1e1e;
+                border: 1px solid #444;
+                border-radius: 10px;
+                min-height: 320px;
+                position: relative;
+            }
+            .kanban-col:not(:last-child)::after {
+                content: '';
+                position: absolute;
+                top: 0;
+                right: -5px;
+                width: 2px;
+                height: 100%;
+                background-color: #333;
+            }
+            </style>
+        """, unsafe_allow_html=True)
+
+        st.markdown("<div class='col-container'>", unsafe_allow_html=True)
+
         cols = st.columns(len(fases))
         novos_status = {}
 
         for i, fase in enumerate(fases):
             with cols[i]:
-                st.markdown(f"<div style='padding:10px; background-color:#1e1e1e; border:1px solid #444; border-radius:8px; min-height:300px'>", unsafe_allow_html=True)
-                st.markdown(f"<h4 style='text-align:center; color:#00bfff'>{fase}</h4>", unsafe_allow_html=True)
+                st.markdown(f"<div class='kanban-col'><h5 style='text-align:center; color:#00bfff'>{fase}</h5>", unsafe_allow_html=True)
                 updated = sort_items(fase_to_leads[fase], key=f"fase_{fase}")
                 novos_status[fase] = updated
                 st.markdown("</div>", unsafe_allow_html=True)
+
+        st.markdown("</div>", unsafe_allow_html=True)
 
         for fase, lista in novos_status.items():
             for nome in lista:
