@@ -1,15 +1,17 @@
 import streamlit as st
 import requests
 import pandas as pd
+import plotly.express as px
 from datetime import datetime
 
 st.set_page_config(page_title="Void Prospect", page_icon="📽️", layout="wide")
 st.markdown("<h1 style='text-align: center;'>📽️ Void Prospect</h1>", unsafe_allow_html=True)
 st.markdown("---")
 
+API_URL = "https://script.google.com/macros/s/AKfycbxiXUYjHalZhwIAyZgNl4iKKvdKIl8hzb3eCG93BD810F89bUHmpcEouVhSG-k2ORvViQ/exec"
+
 aba = st.radio("Navegação", ["📥 Cadastro de Leads", "📊 Funil de Vendas", "📈 Dashboard"], horizontal=True)
 
-# Lista inicial de nichos
 if "nichos" not in st.session_state:
     st.session_state.nichos = [
         "Clínicas odontológicas", "Nutricionistas", "Personal trainers",
@@ -25,7 +27,19 @@ def gerar_mensagem(nicho, tipo):
     }
     return base[tipo].format(nicho.lower())
 
-# 📥 Aba 1: Cadastro
+def buscar_leads():
+    try:
+        r = requests.get(API_URL)
+        if r.status_code == 200:
+            return pd.DataFrame(r.json())
+        else:
+            st.error("Erro ao buscar dados.")
+            return pd.DataFrame()
+    except:
+        st.error("Erro de conexão com a API.")
+        return pd.DataFrame()
+
+# 📥 Cadastro
 if aba == "📥 Cadastro de Leads":
     st.subheader("➕ Novo Lead")
 
@@ -68,43 +82,70 @@ if aba == "📥 Cadastro de Leads":
 
     if st.button("💾 Salvar Lead"):
         if nome and whatsapp and tipo_nicho:
-            st.success("Lead salvo com sucesso!")  # Aqui entraria o envio real
-            st.experimental_rerun()
+            payload = {
+                "nome": nome,
+                "whatsapp": whatsapp,
+                "instagram": instagram,
+                "nicho": tipo_nicho,
+                "obs": observacoes,
+                "neutra": msg_neutra,
+                "informal": msg_informal,
+                "inst": msg_inst,
+                "status": status,
+                "data": data
+            }
+            r = requests.post(API_URL, json=payload)
+            if r.status_code == 200:
+                st.success("Lead salvo com sucesso!")
+                st.experimental_rerun()
+            else:
+                st.error("Erro ao salvar lead.")
         else:
             st.warning("Preencha nome, WhatsApp e nicho.")
 
-# 📊 Aba 2: Funil de Vendas
+# 📊 Funil de Vendas
 elif aba == "📊 Funil de Vendas":
     st.subheader("🔁 Funil de Vendas")
-    funil = {
-        "Novo": ["Lead 1", "Lead 2"],
-        "Contatado": ["Lead 3"],
-        "Aguardando resposta": ["Lead 4", "Lead 5"],
-        "Fechado": ["Lead 6"]
-    }
+    df = buscar_leads()
 
-    cols = st.columns(len(funil))
-    for i, etapa in enumerate(funil.keys()):
-        with cols[i]:
-            st.markdown(f"### {etapa}")
-            for lead in funil[etapa]:
-                st.markdown(f"🟦 {lead}")
+    if not df.empty:
+        funil_cols = ["Novo", "Contatado", "Aguardando resposta", "Fechado"]
+        cols = st.columns(len(funil_cols))
+        for i, etapa in enumerate(funil_cols):
+            with cols[i]:
+                st.markdown(f"### {etapa}")
+                leads = df[df["status"] == etapa]
+                for idx, row in leads.iterrows():
+                    st.write(f"🟦 {row['nome']}")
 
-# 📈 Aba 3: Dashboard
+        st.caption("⚠️ Em breve: arrastar para trocar de fase direto aqui.")
+
+# 📈 Dashboard
 elif aba == "📈 Dashboard":
     st.subheader("📊 Análise de Leads")
+    df = buscar_leads()
 
-    resumo = {
-        "Total de Leads": 23,
-        "Fechados": 6,
-        "Contatados": 5,
-        "Aguardando resposta": 8,
-        "Novos": 4
-    }
+    if not df.empty:
+        st.markdown("### Leads por Status")
+        tipo1 = st.selectbox("Tipo de gráfico", ["Barras", "Pizza", "Linha"], key="tipo1")
+        df1 = df["status"].value_counts().reset_index()
+        df1.columns = ["status", "quantidade"]
 
-    col1, col2, col3, col4, col5 = st.columns(5)
-    col1.metric("📋 Total", resumo["Total de Leads"])
-    col2.metric("✅ Fechados", resumo["Fechados"])
-    col3.metric("📞 Contatados", resumo["Contatados"])
-    col4.metric("⏳ Aguardando", resumo["Aguardando resposta"])
-    col5.metric("🆕 Novos", resumo["Novos"])
+        if tipo1 == "Barras":
+            st.plotly_chart(px.bar(df1, x="status", y="quantidade", color="status"))
+        elif tipo1 == "Pizza":
+            st.plotly_chart(px.pie(df1, names="status", values="quantidade"))
+        else:
+            st.plotly_chart(px.line(df1, x="status", y="quantidade"))
+
+        st.markdown("### Leads por Nicho")
+        tipo2 = st.selectbox("Tipo de gráfico", ["Barras", "Pizza", "Linha"], key="tipo2")
+        df2 = df["nicho"].value_counts().reset_index()
+        df2.columns = ["nicho", "quantidade"]
+
+        if tipo2 == "Barras":
+            st.plotly_chart(px.bar(df2, x="nicho", y="quantidade", color="nicho"))
+        elif tipo2 == "Pizza":
+            st.plotly_chart(px.pie(df2, names="nicho", values="quantidade"))
+        else:
+            st.plotly_chart(px.line(df2, x="nicho", y="quantidade"))
