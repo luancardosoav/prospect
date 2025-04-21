@@ -26,7 +26,7 @@ def connect_sheet():
     creds_dict = json.loads(st.secrets["google"]["credentials"])
     creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
     client = gspread.authorize(creds)
-    sheet = client.open("CRM Void").sheet1
+    sheet = client.open("crmvoid").sheet1
     return sheet
 
 sheet = connect_sheet()
