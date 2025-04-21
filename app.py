@@ -98,33 +98,43 @@ if aba == "📩 Cadastro de Leads":
             else:
                 st.error("Erro ao cadastrar o lead.")
 
-# ABA 2: FUNIL
-elif aba == "🎯 Funil de Vendas":
+# FUNIL DE VENDAS COM DRAG AND DROP
+elif aba == "📍 Funil de Vendas":
+
     st.markdown("## 🔴 Funil de Vendas com Drag & Drop")
 
-    df = listar_leads()
-    if df.empty:
-        st.warning("Nenhum lead encontrado.")
-    else:
-        col1, col2, col3, col4 = st.columns(4)
+    fases = ["Novo", "Contatado", "Aguardando resposta", "Fechado"]
 
-        status_cols = {
-            "Novo": col1,
-            "Contatado": col2,
-            "Aguardando resposta": col3,
-            "Fechado": col4
-        }
+    # Dados organizados por fase
+    drag_data = {}
+    for status in fases:
+        if status in [lead["status"] for lead in leads]:
+            drag_data[status] = sort_items(
+                [lead for lead in leads if lead["status"] == status],
+                direction="vertical",
+                key="status",
+                label="nome"
+            )
+        else:
+            drag_data[status] = []
 
-        drag_data = {}
+    result = dnd_grid(
+        drag_data,
+        layout=fases,
+        spacing=20,
+        dot_color="#FA5252",
+        background="#1c1c1e",
+        columns=4
+    )
 
-        for status in status_cols:
-            leads_raw = df[df["status"] == status]["nome"]
-            leads = leads_raw.dropna().astype(str).tolist() if not leads_raw.empty else []
-            with status_cols[status]:
-                st.markdown(f"<div class='funil-titulo'>{status}</div>", unsafe_allow_html=True)
-                st.markdown(f"<div class='funil-col'>", unsafe_allow_html=True)
-                drag_data[status] = sort_items(leads, direction="vertical", key=status, label="")
-                st.markdown("</div>", unsafe_allow_html=True)
+    # Atualiza status se houver alteração
+    if result:
+        for novo_status, cards in result.items():
+            for card in cards:
+                for lead in leads:
+                    if lead["nome"] == card["nome"]:
+                        lead["status"] = novo_status
+        atualizar_planilha(leads)
 
 # ABA 3: DASHBOARD
 elif aba == "📈 Dashboard":
