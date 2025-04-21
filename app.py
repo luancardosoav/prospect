@@ -1,213 +1,114 @@
 import streamlit as st
 import requests
 import pandas as pd
-import plotly.express as px
-from datetime import datetime
 from streamlit_sortables import sort_items
+from datetime import datetime
 
-st.set_page_config(page_title="Void Prospect", page_icon="📽️", layout="wide")
-st.markdown("<h1 style='text-align: center;'>📽️ Void Prospect</h1>", unsafe_allow_html=True)
-st.markdown("---")
+st.set_page_config(layout="wide", page_title="Void Prospect")
+st.markdown("<style>body { background-color: #111; color: white; }</style>", unsafe_allow_html=True)
 
+# Funções
 API_URL = "https://script.google.com/macros/s/AKfycbzjbQbQD1mcSc848eCnKlcSOLYwYrBLi_BdsGHAfbl1INO5IGthVUL1hugzu_xtvInETQ/exec"
 
-aba = st.radio("Navegação", ["📥 Cadastro de Leads", "📊 Funil de Vendas", "📈 Dashboard"], horizontal=True)
-
-if "nichos" not in st.session_state:
-    st.session_state.nichos = [
-        "Clínicas odontológicas", "Nutricionistas", "Personal trainers",
-        "Lojas físicas", "Restaurantes", "Salões de beleza",
-        "Artesãos", "Estúdios de tatuagem", "Arquitetos", "E-commerces locais"
-    ]
-
-def gerar_mensagem(nicho, tipo):
-    base = {
-        "neutro": "Oi, tudo bem? Vi teu negócio de {} e pensei em como vídeos podem destacar o teu trabalho.",
-        "informal": "E aí! Vi que tu trabalha com {} e já imaginei uns vídeos massa pra atrair mais clientes.",
-        "institucional": "Olá! Seu negócio no segmento de {} tem grande potencial para crescer com vídeos estratégicos."
-    }
-    return base[tipo].format(nicho.lower())
-
-@st.cache_data(ttl=60)
-def buscar_leads():
+def carregar_leads():
     try:
-        r = requests.get(API_URL, timeout=10)
-        if r.status_code == 200:
-            return pd.DataFrame(r.json())
+        response = requests.get(API_URL)
+        if response.status_code == 200:
+            return pd.DataFrame(response.json())
         else:
+            st.error("Erro ao carregar os leads.")
             return pd.DataFrame()
-    except:
+    except Exception as e:
+        st.error("Erro ao conectar com a API.")
         return pd.DataFrame()
 
-# 📥 Cadastro de Leads
-if aba == "📥 Cadastro de Leads":
-    st.subheader("➕ Novo Lead")
+def atualizar_status_lead(nome, novo_status):
+    try:
+        response = requests.post(API_URL, json={"update": True, "nome": nome, "status": novo_status})
+        if response.status_code != 200:
+            st.error("Erro ao atualizar o status.")
+    except Exception as e:
+        st.error("Erro ao atualizar o status.")
 
-    col1, col2 = st.columns(2)
-    with col1:
-        nome = st.text_input("Nome do Lead")
-        whatsapp = st.text_input("WhatsApp (apenas números)", max_chars=15)
-        instagram = st.text_input("Instagram ou site")
-        observacoes = st.text_area("Observações")
+# Layout de navegação
+aba = st.radio("📬 Navegação", ["Cadastro de Leads", "📍 Funil de Vendas com Drag & Drop", "📊 Dashboard"], horizontal=True)
 
-    with col2:
-        tipo_nicho = st.selectbox("Escolha ou adicione um nicho", st.session_state.nichos + ["➕ Adicionar novo nicho"])
-        if tipo_nicho == "➕ Adicionar novo nicho":
-            novo = st.text_input("Digite o novo nicho")
-            if novo and novo not in st.session_state.nichos:
-                st.session_state.nichos.append(novo)
-                tipo_nicho = novo
-
+if aba == "Cadastro de Leads":
+    st.title("Cadastro de Leads")
+    with st.form("cadastro_form"):
+        nome = st.text_input("Nome")
+        whatsapp = st.text_input("WhatsApp")
+        instagram = st.text_input("Instagram")
+        nicho = st.text_input("Nicho")
+        obs = st.text_area("Observações")
+        neutra = st.text_area("Mensagem Neutra")
+        informal = st.text_area("Mensagem Informal")
+        inst = st.text_area("Mensagem Institucional")
         status = st.selectbox("Status", ["Novo", "Contatado", "Aguardando resposta", "Fechado"])
-        data = datetime.now().strftime("%d/%m/%Y")
+        data = st.date_input("Data de Cadastro", value=datetime.today())
+        submit = st.form_submit_button("Cadastrar")
 
-    st.markdown("### 💬 Mensagens sugeridas")
-
-    coln1, coln2, coln3 = st.columns(3)
-    with coln1:
-        msg_neutra = st.text_area("📌 Neutro", value=gerar_mensagem(tipo_nicho, "neutro"), height=100)
-        if st.button("🔁 Gerar nova (Neutro)"):
-            st.experimental_rerun()
-
-    with coln2:
-        msg_informal = st.text_area("😎 Informal", value=gerar_mensagem(tipo_nicho, "informal"), height=100)
-        if st.button("🔁 Gerar nova (Informal)"):
-            st.experimental_rerun()
-
-    with coln3:
-        msg_inst = st.text_area("🏢 Institucional", value=gerar_mensagem(tipo_nicho, "institucional"), height=100)
-        if st.button("🔁 Gerar nova (Institucional)"):
-            st.experimental_rerun()
-
-    if st.button("💾 Salvar Lead"):
-        if nome and whatsapp and tipo_nicho:
-            payload = {
-                "nome": nome,
-                "whatsapp": whatsapp,
-                "instagram": instagram,
-                "nicho": tipo_nicho,
-                "obs": observacoes,
-                "neutra": msg_neutra,
-                "informal": msg_informal,
-                "inst": msg_inst,
-                "status": status,
-                "data": data
-            }
-            try:
-                r = requests.post(API_URL, json=payload, timeout=10)
-                if r.status_code == 200:
-                    st.success("Lead salvo com sucesso!")
-                    st.experimental_rerun()
-                else:
-                    st.error("Erro ao salvar lead.")
-            except:
-                st.error("Erro de conexão com a API.")
+    if submit:
+        payload = {
+            "nome": nome,
+            "whatsapp": whatsapp,
+            "instagram": instagram,
+            "nicho": nicho,
+            "obs": obs,
+            "neutra": neutra,
+            "informal": informal,
+            "inst": inst,
+            "status": status,
+            "data": data.strftime("%d/%m/%Y")
+        }
+        response = requests.post(API_URL, json=payload)
+        if response.status_code == 200:
+            st.success("Lead cadastrado com sucesso!")
         else:
-            st.warning("Preencha nome, WhatsApp e nicho.")
-            # 📊 Funil de Vendas com Drag & Drop e Visual
-elif aba == "📊 Funil de Vendas":
-    st.subheader("🧲 Funil de Vendas com Drag & Drop")
-    df = buscar_leads()
+            st.error("Erro ao cadastrar o lead.")
 
+elif aba == "📍 Funil de Vendas com Drag & Drop":
+    st.markdown("## 🧲 Funil de Vendas com Drag & Drop")
+
+    df = carregar_leads()
     if df.empty:
-        st.info("Nenhum lead encontrado ou erro ao carregar.")
-    else:
-        fases = ["Novo", "Contatado", "Aguardando resposta", "Fechado"]
-        fase_to_leads = {fase: df[df["status"] == fase]["nome"].tolist() for fase in fases}
+        st.warning("Nenhum lead encontrado.")
+        st.stop()
 
-        # Estilo com divisórias
-        st.markdown("""
-            <style>
-            .col-container {
-                display: flex;
-                justify-content: space-between;
-            }
-            .kanban-col {
-                flex: 1;
-                margin: 0 4px;
-                padding: 10px;
-                background-color: #1e1e1e;
-                border: 1px solid #444;
-                border-radius: 10px;
-                min-height: 320px;
-                position: relative;
-            }
-            .kanban-col:not(:last-child)::after {
-                content: '';
-                position: absolute;
-                top: 0;
-                right: -5px;
-                width: 2px;
-                height: 100%;
-                background-color: #333;
-            }
-            </style>
-        """, unsafe_allow_html=True)
+    col1, col2, col3, col4 = st.columns(4)
+    status_cols = {
+        "Novo": col1,
+        "Contatado": col2,
+        "Aguardando resposta": col3,
+        "Fechado": col4,
+    }
 
-        st.markdown("<div class='col-container'>", unsafe_allow_html=True)
+    with col1:
+        st.markdown("### Novo")
+    with col2:
+        st.markdown("### Contatado")
+    with col3:
+        st.markdown("### Aguardando resposta")
+    with col4:
+        st.markdown("### Fechado")
 
-        cols = st.columns(len(fases))
-        novos_status = {}
+    drag_data = {}
+    for status in status_cols:
+        leads = df[df["status"] == status]["nome"].tolist()
+        with status_cols[status]:
+            drag_data[status] = sort_items(leads, direction="vertical", key=status, label="")
 
-        for i, fase in enumerate(fases):
-            with cols[i]:
-                st.markdown(f"<div class='kanban-col'><h5 style='text-align:center; color:#00bfff'>{fase}</h5>", unsafe_allow_html=True)
-                updated = sort_items(fase_to_leads[fase], key=f"fase_{fase}")
-                novos_status[fase] = updated
-                st.markdown("</div>", unsafe_allow_html=True)
+    for status, nomes in drag_data.items():
+        for nome in nomes:
+            linha = df[df["nome"] == nome]
+            if not linha.empty and linha.iloc[0]["status"] != status:
+                atualizar_status_lead(nome, status)
 
-        st.markdown("</div>", unsafe_allow_html=True)
-
-        for fase, lista in novos_status.items():
-            for nome in lista:
-                atual = df[df["nome"] == nome]["status"].values
-                if len(atual) > 0 and atual[0] != fase:
-                    linha = df[df["nome"] == nome].iloc[0]
-                    payload = {
-                        "nome": linha["nome"],
-                        "whatsapp": linha["whatsapp"],
-                        "instagram": linha["instagram"],
-                        "nicho": linha["nicho"],
-                        "obs": linha["obs"],
-                        "neutra": linha["neutra"],
-                        "informal": linha["informal"],
-                        "inst": linha["inst"],
-                        "status": fase,
-                        "data": linha["data"]
-                    }
-                    try:
-                        requests.post(API_URL, json=payload, timeout=10)
-                    except:
-                        st.error(f"Erro ao atualizar {nome}")
-
-# 📈 Dashboard
-elif aba == "📈 Dashboard":
-    st.subheader("📊 Análise de Leads")
-    df = buscar_leads()
-
+elif aba == "📊 Dashboard":
+    st.title("Dashboard")
+    df = carregar_leads()
     if df.empty:
-        st.info("Nenhum dado disponível.")
+        st.warning("Nenhum lead encontrado.")
     else:
-        st.markdown("### Leads por Status")
-        tipo1 = st.selectbox("Tipo de gráfico", ["Barras", "Pizza", "Linha"], key="tipo1")
-        df1 = df["status"].value_counts().reset_index()
-        df1.columns = ["status", "quantidade"]
-
-        if tipo1 == "Barras":
-            st.plotly_chart(px.bar(df1, x="status", y="quantidade", color="status"))
-        elif tipo1 == "Pizza":
-            st.plotly_chart(px.pie(df1, names="status", values="quantidade"))
-        else:
-            st.plotly_chart(px.line(df1, x="status", y="quantidade"))
-
-        st.markdown("### Leads por Nicho")
-        tipo2 = st.selectbox("Tipo de gráfico", ["Barras", "Pizza", "Linha"], key="tipo2")
-        df2 = df["nicho"].value_counts().reset_index()
-        df2.columns = ["nicho", "quantidade"]
-
-        if tipo2 == "Barras":
-            st.plotly_chart(px.bar(df2, x="nicho", y="quantidade", color="nicho"))
-        elif tipo2 == "Pizza":
-            st.plotly_chart(px.pie(df2, names="nicho", values="quantidade"))
-        else:
-            st.plotly_chart(px.line(df2, x="nicho", y="quantidade"))
+        st.write("Total de Leads:", len(df))
+        st.bar_chart(df["status"].value_counts())
