@@ -1,26 +1,15 @@
 import streamlit as st
-import pandas as pd
-import pygsheets
-import json
+import requests
 from datetime import datetime
 
 st.set_page_config(page_title="Void CRM", page_icon="📽️", layout="wide")
 st.markdown("<h1 style='text-align: center;'>📲 Void - Prospecção Inteligente</h1>", unsafe_allow_html=True)
+st.write("")
 
-# Conexão com pygsheets
-@st.cache_resource
-def connect_sheet():
-    creds_dict = json.loads(st.secrets["google"]["credentials"])
-    gc = pygsheets.authorize(custom_credentials=pygsheets.authorize(client_secret=creds_dict, no_cache=True))
-    sh = gc.open_by_url("https://docs.google.com/spreadsheets/d/1DLB07ODbEYqByMG-FjUcxITtFxt9HD7wvJmnPrZzOBM/edit")
-    wks = sh[0]  # Primeira aba
-    return wks
+# URL da API do Google Apps Script
+API_URL = "https://script.google.com/macros/s/AKfycbxiXUYjHalZhwIAyZgNl4iKKvdKIl8hzb3eCG93BD810F89bUHmpcEouVhSG-k2ORvViQ/exec"
 
-sheet = connect_sheet()
-
-def salvar_lead(data):
-    sheet.append_table(data, start="A2", dimension="ROWS", overwrite=False)
-
+# Formulário
 st.subheader("➕ Novo Lead")
 
 col1, col2 = st.columns(2)
@@ -39,6 +28,7 @@ with col2:
     status = st.selectbox("Status", ["Novo", "Contatado", "Aguardando resposta", "Fechado"])
     data = datetime.now().strftime("%d/%m/%Y")
 
+# Mensagens automáticas
 mensagens_padrao = {
     "Clínicas odontológicas": "Oi, tudo bem? Vi tua clínica e pensei em como vídeos podem aumentar a confiança do paciente antes da consulta...",
     "Nutricionistas": "Oi! Vi teu conteúdo e pensei como vídeos poderiam te posicionar como referência na nutrição...",
@@ -63,11 +53,25 @@ st.code("🏢 Institucional:\n" + msg_institucional)
 
 if st.button("💾 Salvar Lead"):
     if nome and whatsapp and nicho:
-        salvar_lead([
-            nome, whatsapp, instagram, nicho, observacoes,
-            msg_neutra, msg_informal, msg_institucional,
-            status, data
-        ])
-        st.success("Lead salvo com sucesso!")
+        payload = {
+            "nome": nome,
+            "whatsapp": whatsapp,
+            "instagram": instagram,
+            "nicho": nicho,
+            "obs": observacoes,
+            "neutra": msg_neutra,
+            "informal": msg_informal,
+            "inst": msg_institucional,
+            "status": status,
+            "data": data
+        }
+        try:
+            r = requests.post(API_URL, json=payload)
+            if r.status_code == 200:
+                st.success("Lead salvo com sucesso!")
+            else:
+                st.error("Erro ao enviar. Código: {}".format(r.status_code))
+        except Exception as e:
+            st.error(f"Erro de conexão: {e}")
     else:
         st.warning("Preencha nome, WhatsApp e nicho.")
