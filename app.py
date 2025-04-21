@@ -26,8 +26,10 @@ def connect_sheet():
     creds_dict = json.loads(st.secrets["google"]["credentials"])
     creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
     client = gspread.authorize(creds)
-    sheet = client.open_by_key("1_tQxYZlCWNHOXB1Xc-OpF8uwuwIkcd6ciMyn14XAg6I").sheet1
-    return sheet
+planilhas = client.openall()
+st.write("Planilhas acessíveis pela conta de serviço:")
+for p in planilhas:
+    st.write(p.title)
 
 sheet = connect_sheet()
 
