@@ -8,7 +8,7 @@ st.set_page_config(page_title="Void Prospect", page_icon="📽️", layout="wide
 st.markdown("<h1 style='text-align: center;'>📽️ Void Prospect</h1>", unsafe_allow_html=True)
 st.markdown("---")
 
-API_URL = "https://script.google.com/macros/s/AKfycbxiXUYjHalZhwIAyZgNl4iKKvdKIl8hzb3eCG93BD810F89bUHmpcEouVhSG-k2ORvViQ/exec"
+API_URL = "https://script.google.com/macros/s/AKfycbwExNW7TO68LF-vauLoOAqKY2dS6TLXW-AuKWHimntNYq_h0g9XI11W7FpzkzdScLeUvg/exec"
 
 aba = st.radio("Navegação", ["📥 Cadastro de Leads", "📊 Funil de Vendas", "📈 Dashboard"], horizontal=True)
 
