@@ -23,13 +23,14 @@ st.write("")
 @st.cache_resource
 def connect_sheet():
     scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-    creds_dict = json.loads(st.secrets["google"]["credentials"])
-    creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
-    client = gspread.authorize(creds)
+creds_dict = json.loads(st.secrets["google"]["credentials"])
+creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
+client = gspread.authorize(creds)
+
 planilhas = client.openall()
-st.write("Planilhas acessíveis pela conta de serviço:")
+st.write("📋 Planilhas visíveis pela conta de serviço:")
 for p in planilhas:
-    st.write(p.title)
+    st.write("🔹", p.title)
 
 sheet = connect_sheet()
 
