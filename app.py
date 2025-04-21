@@ -4,6 +4,7 @@ import pandas as pd
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 from datetime import datetime
+import json
 
 # Configuração da página
 st.set_page_config(page_title="Void CRM", page_icon="📽️", layout="wide")
@@ -18,11 +19,12 @@ st.markdown("""
 st.markdown("<h1 style='text-align: center;'>📲 Void - Prospecção Inteligente</h1>", unsafe_allow_html=True)
 st.write("")
 
-# Conexão com Google Sheets
+# Conexão com Google Sheets via secrets
 @st.cache_resource
 def connect_sheet():
     scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-    creds = ServiceAccountCredentials.from_json_keyfile_name("credentials.json", scope)
+    creds_dict = json.loads(st.secrets["google"]["credentials"])
+    creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
     client = gspread.authorize(creds)
     sheet = client.open("Void Leads").sheet1
     return sheet
@@ -73,12 +75,9 @@ msg_institucional = msg_neutra.replace("Oi", "Olá").replace("Fala", "Olá")
 st.write("")
 
 st.markdown("#### 💬 Mensagens sugeridas")
-st.code("📌 Neutro:
-" + msg_neutra)
-st.code("😎 Informal:
-" + msg_informal)
-st.code("🏢 Institucional:
-" + msg_institucional)
+st.code("📌 Neutro:\n" + msg_neutra)
+st.code("😎 Informal:\n" + msg_informal)
+st.code("🏢 Institucional:\n" + msg_institucional)
 
 if st.button("💾 Salvar Lead"):
     if nome and whatsapp and nicho:
