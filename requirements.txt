@@ -4,3 +4,4 @@ requests
 plotly
 streamlit-extras
 streamlit-sortables
+streamlit-dnd-card
