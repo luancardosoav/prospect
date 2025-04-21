@@ -1,4 +1,6 @@
 streamlit
 pandas
 requests
-streamlit-dnd-card
+plotly
+streamlit-extras
+streamlit-sortables
