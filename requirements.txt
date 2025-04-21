@@ -1,3 +1,5 @@
 streamlit
-pygsheets
-oauth2client
+pandas
+requests
+plotly
+streamlit-extras
