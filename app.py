@@ -3,12 +3,13 @@ import requests
 import pandas as pd
 import plotly.express as px
 from datetime import datetime
+from streamlit_sortables import sort_items
 
 st.set_page_config(page_title="Void Prospect", page_icon="📽️", layout="wide")
 st.markdown("<h1 style='text-align: center;'>📽️ Void Prospect</h1>", unsafe_allow_html=True)
 st.markdown("---")
 
-API_URL = "https://script.google.com/macros/s/AKfycbwExNW7TO68LF-vauLoOAqKY2dS6TLXW-AuKWHimntNYq_h0g9XI11W7FpzkzdScLeUvg/exec"
+API_URL = "https://script.google.com/macros/s/AKfycbzjbQbQD1mcSc848eCnKlcSOLYwYrBLi_BdsGHAfbl1INO5IGthVUL1hugzu_xtvInETQ/exec"
 
 aba = st.radio("Navegação", ["📥 Cadastro de Leads", "📊 Funil de Vendas", "📈 Dashboard"], horizontal=True)
 
@@ -38,7 +39,7 @@ def buscar_leads():
     except:
         return pd.DataFrame()
 
-# 📥 Aba 1: Cadastro de Leads
+# 📥 Cadastro de Leads
 if aba == "📥 Cadastro de Leads":
     st.subheader("➕ Novo Lead")
 
@@ -103,11 +104,7 @@ if aba == "📥 Cadastro de Leads":
                 st.error("Erro de conexão com a API.")
         else:
             st.warning("Preencha nome, WhatsApp e nicho.")
-
-# 📊 Aba 2: Funil de Vendas
-elif aba == "📊 Funil de Vendas":
-   from streamlit_sortables import sort_items
-
+            # 📊 Funil de Vendas com Drag & Drop e Visual
 elif aba == "📊 Funil de Vendas":
     st.subheader("🧲 Funil de Vendas com Drag & Drop")
     df = buscar_leads()
@@ -117,25 +114,22 @@ elif aba == "📊 Funil de Vendas":
     else:
         fases = ["Novo", "Contatado", "Aguardando resposta", "Fechado"]
         fase_to_leads = {fase: df[df["status"] == fase]["nome"].tolist() for fase in fases}
-
         st.write("💡 Arraste os cards entre colunas para atualizar o status.")
-
         cols = st.columns(len(fases))
         novos_status = {}
 
         for i, fase in enumerate(fases):
             with cols[i]:
-                st.markdown(f"### 🟦 {fase}")
-                st.markdown("---")
+                st.markdown(f"<div style='padding:10px; background-color:#1e1e1e; border:1px solid #444; border-radius:8px; min-height:300px'>", unsafe_allow_html=True)
+                st.markdown(f"<h4 style='text-align:center; color:#00bfff'>{fase}</h4>", unsafe_allow_html=True)
                 updated = sort_items(fase_to_leads[fase], key=f"fase_{fase}")
                 novos_status[fase] = updated
+                st.markdown("</div>", unsafe_allow_html=True)
 
-        # Atualizar os dados com base no novo posicionamento
         for fase, lista in novos_status.items():
             for nome in lista:
                 atual = df[df["nome"] == nome]["status"].values
                 if len(atual) > 0 and atual[0] != fase:
-                    # Atualiza status na planilha via POST
                     linha = df[df["nome"] == nome].iloc[0]
                     payload = {
                         "nome": linha["nome"],
@@ -154,7 +148,7 @@ elif aba == "📊 Funil de Vendas":
                     except:
                         st.error(f"Erro ao atualizar {nome}")
 
-# 📈 Aba 3: Dashboard
+# 📈 Dashboard
 elif aba == "📈 Dashboard":
     st.subheader("📊 Análise de Leads")
     df = buscar_leads()
