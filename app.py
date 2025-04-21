@@ -106,20 +106,53 @@ if aba == "📥 Cadastro de Leads":
 
 # 📊 Aba 2: Funil de Vendas
 elif aba == "📊 Funil de Vendas":
-    st.subheader("🔁 Funil de Vendas")
+   from streamlit_sortables import sort_items
+
+elif aba == "📊 Funil de Vendas":
+    st.subheader("🧲 Funil de Vendas com Drag & Drop")
     df = buscar_leads()
 
     if df.empty:
         st.info("Nenhum lead encontrado ou erro ao carregar.")
     else:
-        funil_cols = ["Novo", "Contatado", "Aguardando resposta", "Fechado"]
-        cols = st.columns(len(funil_cols))
-        for i, etapa in enumerate(funil_cols):
+        fases = ["Novo", "Contatado", "Aguardando resposta", "Fechado"]
+        fase_to_leads = {fase: df[df["status"] == fase]["nome"].tolist() for fase in fases}
+
+        st.write("💡 Arraste os cards entre colunas para atualizar o status.")
+
+        cols = st.columns(len(fases))
+        novos_status = {}
+
+        for i, fase in enumerate(fases):
             with cols[i]:
-                st.markdown(f"### {etapa}")
-                leads = df[df["status"] == etapa]
-                for idx, row in leads.iterrows():
-                    st.markdown(f"🟦 {row['nome']}")
+                st.markdown(f"### 🟦 {fase}")
+                st.markdown("---")
+                updated = sort_items(fase_to_leads[fase], key=f"fase_{fase}")
+                novos_status[fase] = updated
+
+        # Atualizar os dados com base no novo posicionamento
+        for fase, lista in novos_status.items():
+            for nome in lista:
+                atual = df[df["nome"] == nome]["status"].values
+                if len(atual) > 0 and atual[0] != fase:
+                    # Atualiza status na planilha via POST
+                    linha = df[df["nome"] == nome].iloc[0]
+                    payload = {
+                        "nome": linha["nome"],
+                        "whatsapp": linha["whatsapp"],
+                        "instagram": linha["instagram"],
+                        "nicho": linha["nicho"],
+                        "obs": linha["obs"],
+                        "neutra": linha["neutra"],
+                        "informal": linha["informal"],
+                        "inst": linha["inst"],
+                        "status": fase,
+                        "data": linha["data"]
+                    }
+                    try:
+                        requests.post(API_URL, json=payload, timeout=10)
+                    except:
+                        st.error(f"Erro ao atualizar {nome}")
 
 # 📈 Aba 3: Dashboard
 elif aba == "📈 Dashboard":
