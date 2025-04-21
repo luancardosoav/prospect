@@ -23,7 +23,7 @@ def connect_sheet():
     creds_dict = json.loads(st.secrets["google"]["credentials"])
     creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
     client = gspread.authorize(creds)
-    sheet = client.open("crmvoid1").sheet1
+   sheet = client.open_by_url("https://docs.google.com/spreadsheets/d/1DLB07ODbEYqByMG-FjUcxITtFxt9HD7wvJmnPrZzOBM/edit").sheet1
     return sheet
 
 sheet = connect_sheet()
