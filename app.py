@@ -8,7 +8,7 @@ st.set_page_config(page_title="Void Prospect", page_icon="📽️", layout="wide
 st.markdown("<h1 style='text-align: center;'>📽️ Void Prospect</h1>", unsafe_allow_html=True)
 st.markdown("---")
 
-API_URL = "https://script.google.com/macros/library/d/1pQ4UXYHljUz0zKk8-gxmwPT5crGUcdikZaGuwJoKB_szGAqUuX2IbJnY/1"
+API_URL = "https://script.google.com/macros/s/AKfycbxiXUYjHalZhwIAyZgNl4iKKvdKIl8hzb3eCG93BD810F89bUHmpcEouVhSG-k2ORvViQ/exec"
 
 aba = st.radio("Navegação", ["📥 Cadastro de Leads", "📊 Funil de Vendas", "📈 Dashboard"], horizontal=True)
 
@@ -27,19 +27,18 @@ def gerar_mensagem(nicho, tipo):
     }
     return base[tipo].format(nicho.lower())
 
+@st.cache_data(ttl=60)
 def buscar_leads():
     try:
-        r = requests.get(API_URL)
+        r = requests.get(API_URL, timeout=10)
         if r.status_code == 200:
             return pd.DataFrame(r.json())
         else:
-            st.error("Erro ao buscar dados.")
             return pd.DataFrame()
     except:
-        st.error("Erro de conexão com a API.")
         return pd.DataFrame()
 
-# 📥 Cadastro
+# 📥 Aba 1: Cadastro de Leads
 if aba == "📥 Cadastro de Leads":
     st.subheader("➕ Novo Lead")
 
@@ -61,7 +60,6 @@ if aba == "📥 Cadastro de Leads":
         status = st.selectbox("Status", ["Novo", "Contatado", "Aguardando resposta", "Fechado"])
         data = datetime.now().strftime("%d/%m/%Y")
 
-    st.divider()
     st.markdown("### 💬 Mensagens sugeridas")
 
     coln1, coln2, coln3 = st.columns(3)
@@ -94,21 +92,26 @@ if aba == "📥 Cadastro de Leads":
                 "status": status,
                 "data": data
             }
-            r = requests.post(API_URL, json=payload)
-            if r.status_code == 200:
-                st.success("Lead salvo com sucesso!")
-                st.experimental_rerun()
-            else:
-                st.error("Erro ao salvar lead.")
+            try:
+                r = requests.post(API_URL, json=payload, timeout=10)
+                if r.status_code == 200:
+                    st.success("Lead salvo com sucesso!")
+                    st.experimental_rerun()
+                else:
+                    st.error("Erro ao salvar lead.")
+            except:
+                st.error("Erro de conexão com a API.")
         else:
             st.warning("Preencha nome, WhatsApp e nicho.")
 
-# 📊 Funil de Vendas
+# 📊 Aba 2: Funil de Vendas
 elif aba == "📊 Funil de Vendas":
     st.subheader("🔁 Funil de Vendas")
     df = buscar_leads()
 
-    if not df.empty:
+    if df.empty:
+        st.info("Nenhum lead encontrado ou erro ao carregar.")
+    else:
         funil_cols = ["Novo", "Contatado", "Aguardando resposta", "Fechado"]
         cols = st.columns(len(funil_cols))
         for i, etapa in enumerate(funil_cols):
@@ -116,16 +119,16 @@ elif aba == "📊 Funil de Vendas":
                 st.markdown(f"### {etapa}")
                 leads = df[df["status"] == etapa]
                 for idx, row in leads.iterrows():
-                    st.write(f"🟦 {row['nome']}")
+                    st.markdown(f"🟦 {row['nome']}")
 
-        st.caption("⚠️ Em breve: arrastar para trocar de fase direto aqui.")
-
-# 📈 Dashboard
+# 📈 Aba 3: Dashboard
 elif aba == "📈 Dashboard":
     st.subheader("📊 Análise de Leads")
     df = buscar_leads()
 
-    if not df.empty:
+    if df.empty:
+        st.info("Nenhum dado disponível.")
+    else:
         st.markdown("### Leads por Status")
         tipo1 = st.selectbox("Tipo de gráfico", ["Barras", "Pizza", "Linha"], key="tipo1")
         df1 = df["status"].value_counts().reset_index()
