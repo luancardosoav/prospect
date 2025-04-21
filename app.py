@@ -100,34 +100,37 @@ if aba == "📩 Cadastro de Leads":
 
 # FUNIL DE VENDAS COM DRAG AND DROP
 elif aba == "📍 Funil de Vendas":
-
-    st.markdown("## 🔴 Funil de Vendas com Drag & Drop")
+    st.markdown("## 🎯 Funil de Vendas com Drag & Drop")
 
     fases = ["Novo", "Contatado", "Aguardando resposta", "Fechado"]
 
-    # Dados organizados por fase
-    drag_data = {}
-    for status in fases:
-        if status in [lead["status"] for lead in leads]:
-            drag_data[status] = sort_items(
-                [lead for lead in leads if lead["status"] == status],
-                direction="vertical",
-                key="status",
-                label="nome"
-            )
-        else:
+    # Organiza leads por status
+    drag_data = {fase: [] for fase in fases}
+    for lead in leads:
+        status = lead.get("status", "Novo")
+        if status not in drag_data:
             drag_data[status] = []
+        drag_data[status].append({
+            "nome": lead["nome"],
+            "data": lead["data"],
+            "status": status
+        })
 
+    # Renderiza com divisórias visuais
+    st.markdown("<style>.dnd-card { margin-bottom: 6px; }</style>", unsafe_allow_html=True)
     result = dnd_grid(
         drag_data,
         layout=fases,
+        columns=4,
         spacing=20,
-        dot_color="#FA5252",
-        background="#1c1c1e",
-        columns=4
+        show_labels=True,
+        label_style={"font-weight": "bold", "color": "#00BFFF"},
+        card_style={"border-radius": "6px", "padding": "8px"},
+        container_style={"background-color": "#202124", "padding": "10px"},
+        draggable=True
     )
 
-    # Atualiza status se houver alteração
+    # Atualiza status após movimentação
     if result:
         for novo_status, cards in result.items():
             for card in cards:
@@ -135,7 +138,6 @@ elif aba == "📍 Funil de Vendas":
                     if lead["nome"] == card["nome"]:
                         lead["status"] = novo_status
         atualizar_planilha(leads)
-
 # ABA 3: DASHBOARD
 elif aba == "📈 Dashboard":
     st.markdown("## 📊 Análise de Leads")
