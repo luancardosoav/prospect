@@ -5,7 +5,6 @@ from oauth2client.service_account import ServiceAccountCredentials
 from datetime import datetime
 import json
 
-# Configuração da página
 st.set_page_config(page_title="Void CRM", page_icon="📽️", layout="wide")
 
 st.markdown("""
@@ -18,23 +17,20 @@ st.markdown("""
 st.markdown("<h1 style='text-align: center;'>📲 Void - Prospecção Inteligente</h1>", unsafe_allow_html=True)
 st.write("")
 
-# Conexão com Google Sheets via st.secrets
 @st.cache_resource
 def connect_sheet():
     scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
     creds_dict = json.loads(st.secrets["google"]["credentials"])
     creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
     client = gspread.authorize(creds)
-    sheet = client.open_by_key("1_tQxYZlCWNHOXB1Xc-OpF8uwuwIkcd6ciMyn14XAg6I").sheet1
+    sheet = client.open_by_key("1DLB07ODbEYqByMG-FjUcxITtFxt9HD7wvJmnPrZzOBM").sheet1
     return sheet
 
 sheet = connect_sheet()
 
-# Função para salvar lead
 def salvar_lead(data):
     sheet.append_row(data)
 
-# Interface do formulário
 st.subheader("➕ Novo Lead")
 
 col1, col2 = st.columns(2)
@@ -53,7 +49,6 @@ with col2:
     status = st.selectbox("Status", ["Novo", "Contatado", "Aguardando resposta", "Fechado"])
     data = datetime.now().strftime("%d/%m/%Y")
 
-# Geração das mensagens automáticas
 mensagens_padrao = {
     "Clínicas odontológicas": "Oi, tudo bem? Vi tua clínica e pensei em como vídeos podem aumentar a confiança do paciente antes da consulta...",
     "Nutricionistas": "Oi! Vi teu conteúdo e pensei como vídeos poderiam te posicionar como referência na nutrição...",
