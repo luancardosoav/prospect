@@ -92,9 +92,12 @@ elif aba == "📍 Funil de Vendas com Drag & Drop":
     with col4:
         st.markdown("### Fechado")
 
-    drag_data = {}
+        drag_data = {}
     for status in status_cols:
-        leads = df[df["status"] == status]["nome"].tolist()
+        # Garantir que será uma lista mesmo se estiver vazia ou com erro
+        leads_raw = df[df["status"] == status]["nome"]
+        leads = leads_raw.dropna().astype(str).tolist() if not leads_raw.empty else []
+
         with status_cols[status]:
             drag_data[status] = sort_items(leads, direction="vertical", key=status, label="")
 
